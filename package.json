@@ -1,0 +1,17 @@
+{
+  "name": "monitor-service",
+  "version": "0.1.0",
+  "description": "Monitor start/stop/restart services",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://aanzee.git.beanstalkapp.com/monitor-service.git"
+  },
+  "keywords": [],
+  "author": "Roy Peters",
+  "license": "ISC",
+  "dependencies": {}
+}
