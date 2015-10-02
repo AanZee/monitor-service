@@ -4,6 +4,7 @@ exports.snapshotData = true;
 
 var exec = require('child_process').exec;
 
+// Get right command for right platform
 var getCommand = function(platform, command, serviceName){
 	var serviceName = (serviceName ? serviceName : 'nothing');
 
@@ -21,7 +22,7 @@ var getCommand = function(platform, command, serviceName){
 			restart: 'sudo service ' + serviceName + ' restart'
 		},
 		win32: {
-			list: '', // sc queryex type= service state= all
+			list: 'sc queryex type= service state= all',
 			stop: 'net stop ' + serviceName,
 			start: 'net start ' + serviceName,
 			restart: 'net stop ' + serviceName + ' && net start ' + serviceName
@@ -31,7 +32,7 @@ var getCommand = function(platform, command, serviceName){
 	return commands[platform][command];
 };
 
-
+// Process mac/darwin services list to readable objects
 var processDarwinServicesListResult = function(stdout) {  
 	var lines = stdout.toString().split('\n');
 	var headers = lines.splice(0, 1)[0].split('\t');
@@ -60,6 +61,7 @@ var processDarwinServicesListResult = function(stdout) {
 	return results;
 };
 
+// Process linux services list to readable objects
 var processLinuxServicesListResult = function(stdout) {
 	var lines = stdout.toString().split('\n');
 
@@ -97,7 +99,7 @@ var processLinuxServicesListResult = function(stdout) {
 	return results;
 };
 
-// TODO: Make command dynamic to platform
+// Process windows services list to readable objects
 var processWindowsServicesListResult = function(stdout) {
 	var lines = stdout.toString().split('\r\n\r\n');
 
@@ -153,18 +155,8 @@ var processWindowsServicesListResult = function(stdout) {
 	return results;
 }
 
-exports.executeCron = function (callback) {
-    this.listServices(function(err, data){
-        if(err)
-            callback(err);
-        else
-            callback(null, data);
-    });
-}
-
-// TODO: delete exports. ??
-exports.listServices = function(callback) {
-	var platform = this.monitorClient.platform;
+// listServices for specified platform
+var listServices = function(platform, callback) {
 	var command = getCommand(platform, 'list');
 
 	exec(command, function(err, out, code) {
@@ -178,49 +170,82 @@ exports.listServices = function(callback) {
 		else if (platform == "win32")
 			callback(null, processWindowsServicesListResult(out));
 		else
-			callback("Other platform provided. What to do?");
+			callback("monitor-service listServices: Other platform provided. What to do?");
 	});
 }
 
+
+// Get serviceList data to executeCron
+exports.executeCron = function (callback) {
+	var platform = this.monitorClient.platform;
+
+	listServices(platform, function(err, data){
+		if(err)
+			callback(err);
+		else
+			callback(null, data);
+	});
+}
+
+// List all services for a specified platform
+exports.list = function (data, callback) {
+	var platform = this.monitorClient.platform;
+
+	listServices(platform, function(err, list){
+		if (err instanceof Error) {
+			data.error = err;
+			callback(data);
+		} else {
+			data.data = list;
+			callback(data);
+		}
+	});
+}
+
+// Start a specified service for a specified platform
 exports.start = function (data, callback) {
 	var platform = this.monitorClient.platform;
 	var command = getCommand(platform, 'start', data.params.serviceName);
 
 	exec(command, function(err, out, code) {
-		if (err instanceof Error)
-	    	throw err;
-
-	    console.log("ERROR:", err);
-	    console.log("OUT:", out);
-	    console.log("CODE", code);
+		if (err instanceof Error) {
+			data.error = err;
+			callback(data);
+		} else {
+			data.data = out;
+			callback(data);
+		}
 	});
 }
 
-// TODO: Make command dynamic to platform
+// Stop a specified service for a specified platform
 exports.stop = function (data, callback) {
 	var platform = this.monitorClient.platform;
 	var command = getCommand(platform, 'stop', data.params.serviceName);
 
-	exec('launchctl stop ' + data.params.serviceName, function(err, out, code) {
-		if (err instanceof Error)
-	    	throw err;
-
-	    console.log("ERROR:", err);
-	    console.log("OUT:", out);
-	    console.log("CODE", code);
+	exec(command, function(err, out, code) {
+		if (err instanceof Error) {
+			data.error = err;
+			callback(data);
+		} else {
+			data.data = out;
+			callback(data);
+		}
 	});
 }
 
+// Restart a specified service for a specified platform
 exports.restart = function (data, callback) {
 	var platform = this.monitorClient.platform;
 	var command = getCommand(platform, 'restart', data.params.serviceName);
 
-	exec('launchctl stop ' + data.params.serviceName + ' && launchctl start ' + data.params.serviceName, function(err, out, code) {
-		if (err instanceof Error)
-	    	throw err;
-
-	    console.log("ERROR:", err);
-	    console.log("OUT:", out);
-	    console.log("CODE", code);
+	exec(command, function(err, out, code) {
+		if (err instanceof Error) {
+			data.error = err;
+			callback(data);
+		} else {
+			data.data = out;
+			callback(data);
+		}
 	});
 }
