@@ -92,7 +92,7 @@ var processLinuxServicesListResult = function(stdout) {
 			}
 			result.state = parts[1];
 
-			results.push(parts);
+			results.push(result);
 		}
 	}
 
